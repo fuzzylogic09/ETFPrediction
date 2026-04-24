@@ -1,0 +1,2133 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ETF Predictor">
+<meta name="description" content="Analyse quantitative ETF — signaux techniques, momentum, backtest">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>ETF Predictor — Analyse Quantitative</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap');
+
+  /* ===== THEME VARIABLES ===== */
+  :root[data-theme="dark"] {
+    --bg: #080c12;
+    --surface: #0d1320;
+    --surface2: #111927;
+    --border: #1a2438;
+    --accent: #00d4ff;
+    --accent2: #00ff88;
+    --danger: #ff3366;
+    --warn: #ffaa00;
+    --text: #c8d8e8;
+    --muted: #4a6080;
+    --green: #00ff88;
+    --red: #ff3366;
+    --chart-bg: #0d1320;
+    --grid-line: rgba(26,36,56,0.8);
+    --loader-bg: rgba(8,12,18,0.85);
+    --grid-overlay: rgba(0,212,255,0.03);
+    --shadow: rgba(0,0,0,0.5);
+    --theme-icon: '☀️';
+  }
+
+  :root[data-theme="light"] {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #f8fafc;
+    --border: #dde4ed;
+    --accent: #0077cc;
+    --accent2: #00a651;
+    --danger: #d9003a;
+    --warn: #d97706;
+    --text: #1a2e45;
+    --muted: #7a90a8;
+    --green: #00873a;
+    --red: #d9003a;
+    --chart-bg: #ffffff;
+    --grid-line: rgba(180,200,220,0.7);
+    --loader-bg: rgba(240,244,248,0.88);
+    --grid-overlay: rgba(0,119,204,0.03);
+    --shadow: rgba(0,0,0,0.12);
+    --theme-icon: '🌙';
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background 0.25s, color 0.25s;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid-overlay) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-overlay) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  header h1 span { color: var(--accent); }
+
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .tag {
+    font-size: 10px;
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.25);
+    color: var(--accent);
+    padding: 3px 8px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ===== THEME TOGGLE ===== */
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .theme-toggle-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 24px;
+    transition: background 0.25s;
+    cursor: pointer;
+    border: 1px solid var(--border);
+  }
+
+  .toggle-track::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: 2px;
+    top: 2px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: transform 0.25s, background 0.25s;
+  }
+
+  .toggle-switch input:checked + .toggle-track {
+    background: var(--accent);
+  }
+
+  .toggle-switch input:checked + .toggle-track::before {
+    transform: translateX(20px);
+    background: #fff;
+  }
+
+  .toggle-icon { font-size: 14px; }
+
+  /* Controls */
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto auto;
+    gap: 12px;
+    margin-bottom: 24px;
+    align-items: end;
+  }
+
+  .ctrl-group { display: flex; flex-direction: column; gap: 6px; }
+  .ctrl-group label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  select, input[type="date"], input[type="number"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    border-radius: 4px;
+    width: 100%;
+    transition: border-color 0.2s, background 0.25s, color 0.25s;
+  }
+
+  select:focus, input:focus {
+    border-color: var(--accent);
+  }
+
+  /* ETF Group separator in select */
+  optgroup {
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--surface2);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  [data-theme="dark"] .btn-primary { color: #000; }
+
+  .btn-primary:hover { filter: brightness(1.15); transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; filter: none; }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--accent2);
+    border: 1px solid var(--accent2);
+  }
+  .btn-secondary:hover { background: rgba(0,166,81,0.1); }
+  .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Mode toggle */
+  .mode-toggle {
+    display: flex;
+    gap: 0;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    width: fit-content;
+    overflow: hidden;
+  }
+
+  .mode-btn {
+    padding: 8px 20px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--muted);
+    border: none;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    transition: all 0.2s;
+  }
+
+  .mode-btn.active {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+  }
+  [data-theme="dark"] .mode-btn.active { color: #000; }
+
+  /* Status bar */
+  .status-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 16px;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    min-height: 38px;
+    flex-wrap: wrap;
+    transition: background 0.25s;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+  .status-dot.loading { background: var(--warn); animation: pulse 1s infinite; }
+  .status-dot.ok { background: var(--green); }
+  .status-dot.error { background: var(--red); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ===== DEBUG PANEL ===== */
+  .debug-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--warn);
+    border-radius: 4px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    display: none;
+    transition: background 0.25s;
+  }
+
+  .debug-panel.visible { display: block; }
+
+  .debug-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: rgba(255,170,0,0.06);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .debug-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--warn);
+    font-weight: 700;
+  }
+
+  .debug-toggle-btn {
+    font-size: 10px;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  .debug-body {
+    padding: 12px 14px;
+    display: none;
+  }
+
+  .debug-body.open { display: block; }
+
+  .debug-log {
+    font-size: 10px;
+    line-height: 1.8;
+    color: var(--muted);
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .debug-log .log-entry {
+    border-bottom: 1px solid var(--border);
+    padding: 3px 0;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .debug-log .log-entry:last-child { border-bottom: none; }
+
+  .log-time { color: var(--accent); flex-shrink: 0; }
+  .log-ok { color: var(--green); }
+  .log-warn { color: var(--warn); }
+  .log-err { color: var(--red); }
+
+  .debug-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .debug-actions button {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+
+  .debug-actions button:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Chart area */
+  .chart-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    position: relative;
+    transition: background 0.25s;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+  }
+
+  /* Metrics grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    transition: background 0.25s;
+  }
+
+  .metric-card .label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .metric-card .value {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .metric-card .sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .metric-card.up .value { color: var(--green); }
+  .metric-card.down .value { color: var(--red); }
+  .metric-card.neutral .value { color: var(--accent); }
+
+  /* Predictions table */
+  .pred-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: background 0.25s;
+  }
+
+  .pred-section h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .pred-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .pred-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .pred-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .pred-table tr:last-child td { border-bottom: none; }
+
+  .confidence-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .conf-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(128,128,128,0.12);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .conf-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .direction-up { color: var(--green); }
+  .direction-down { color: var(--red); }
+  .direction-flat { color: var(--warn); }
+
+  /* Indicators panel */
+  .indicators-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .ind-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    transition: background 0.25s;
+  }
+
+  .ind-card h3 {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .ind-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ind-row:last-child { border-bottom: none; }
+  .ind-row .name { color: var(--muted); font-size: 11px; }
+  .ind-row .val { font-weight: 700; }
+
+  /* Backtest result */
+  .backtest-result {
+    background: rgba(255,170,0,0.04);
+    border: 1px solid rgba(255,170,0,0.3);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-top: 12px;
+    font-size: 11px;
+    display: none;
+  }
+
+  .backtest-result.visible { display: block; }
+  .backtest-result h3 {
+    color: var(--warn);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .bt-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    color: var(--muted);
+  }
+  .bt-row span:last-child { color: var(--text); }
+
+  /* Loader overlay */
+  #loader {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: var(--loader-bg);
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    z-index: 10;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  #loader.visible { display: flex; }
+
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loader-text {
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  /* Notice */
+  .notice {
+    background: rgba(255,170,0,0.04);
+    border: 1px solid rgba(255,170,0,0.18);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 10px;
+    color: var(--warn);
+    opacity: 0.8;
+    letter-spacing: 0.5px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .empty-state .icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+    opacity: 0.3;
+  }
+
+  @media (max-width: 768px) {
+    .controls { grid-template-columns: 1fr 1fr; }
+    .indicators-grid { grid-template-columns: 1fr; }
+    .controls .btn { grid-column: span 2; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>ETF <span>PREDICTOR</span></h1>
+    <span class="tag">Quant v2</span>
+    <span class="tag" style="border-color:rgba(0,166,81,0.3);color:var(--accent2)">ML + TA</span>
+    <div class="header-right">
+      <label class="theme-toggle" title="Changer de thème">
+        <span class="toggle-icon">☀️</span>
+        <div class="toggle-switch">
+          <input type="checkbox" id="theme-checkbox" onchange="toggleTheme(this)">
+          <div class="toggle-track"></div>
+        </div>
+        <span class="toggle-icon">🌙</span>
+      </label>
+    </div>
+  </header>
+
+  <div class="notice">
+    ⚡ Analyse purement mathématique — MACD · RSI · Bollinger · ATR · Momentum · Régression polynomiale · Ensemble models (LSTM simulé + XGBoost simulé + EMA stacking).
+    Les données sont récupérées directement depuis Yahoo Finance. Cet outil est à des fins éducatives — pas de conseil en investissement.
+  </div>
+
+  <!-- Mode toggle -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" onclick="setMode('live')" id="btn-live">⚡ Prédiction Live</button>
+    <button class="mode-btn" onclick="setMode('backtest')" id="btn-backtest">🔬 Backtest Historique</button>
+  </div>
+
+  <!-- Controls Live -->
+  <div class="controls" id="controls-live">
+    <div class="ctrl-group">
+      <label>ETF / Ticker</label>
+      <select id="etf-select">
+        <optgroup label="🇺🇸 Indices US Principaux">
+          <option value="SPY">SPY — S&P 500</option>
+          <option value="QQQ">QQQ — NASDAQ 100</option>
+          <option value="DIA">DIA — Dow Jones</option>
+          <option value="IWM">IWM — Russell 2000</option>
+          <option value="VTI">VTI — Total Market US</option>
+          <option value="VOO">VOO — Vanguard S&P 500</option>
+        </optgroup>
+        <optgroup label="🌍 Marchés Internationaux">
+          <option value="EFA">EFA — Europe/Asie/Pacifique</option>
+          <option value="EEM">EEM — Marchés émergents</option>
+          <option value="VEA">VEA — Marchés développés ex-US</option>
+          <option value="FXI">FXI — Chine Large Cap</option>
+          <option value="EWJ">EWJ — Japon</option>
+          <option value="EWZ">EWZ — Brésil</option>
+        </optgroup>
+        <optgroup label="📦 Secteurs US">
+          <option value="XLK">XLK — Technologie</option>
+          <option value="XLE">XLE — Énergie</option>
+          <option value="XLF">XLF — Finance</option>
+          <option value="XLV">XLV — Santé</option>
+          <option value="XLI">XLI — Industrie</option>
+          <option value="XLY">XLY — Consommation discrétionnaire</option>
+          <option value="XLP">XLP — Consommation de base</option>
+          <option value="XLU">XLU — Services publics</option>
+          <option value="XLRE">XLRE — Immobilier</option>
+          <option value="XLB">XLB — Matériaux</option>
+        </optgroup>
+        <optgroup label="💰 Obligations & Taux">
+          <option value="TLT">TLT — Obligations 20ans US</option>
+          <option value="IEF">IEF — Obligations 7-10ans US</option>
+          <option value="SHY">SHY — Obligations 1-3ans US</option>
+          <option value="HYG">HYG — High Yield Entreprises</option>
+          <option value="EMB">EMB — Obligations émergents</option>
+        </optgroup>
+        <optgroup label="🏅 Matières Premières">
+          <option value="GLD">GLD — Or</option>
+          <option value="SLV">SLV — Argent</option>
+          <option value="USO">USO — Pétrole WTI</option>
+          <option value="DBA">DBA — Agricole</option>
+          <option value="PDBC">PDBC — Diversifié Matières Premières</option>
+        </optgroup>
+        <optgroup label="⚡ Haute Volatilité / Levier">
+          <option value="TQQQ">TQQQ — NASDAQ 3x Bull</option>
+          <option value="SQQQ">SQQQ — NASDAQ 3x Bear</option>
+          <option value="SPXL">SPXL — S&P 500 3x Bull</option>
+          <option value="SPXS">SPXS — S&P 500 3x Bear</option>
+          <option value="UVXY">UVXY — VIX 1.5x Bull</option>
+          <option value="LABU">LABU — Biotech 3x Bull</option>
+          <option value="FNGU">FNGU — FANG+ 3x Bull</option>
+          <option value="SOXL">SOXL — Semi-conducteurs 3x Bull</option>
+          <option value="ARKK">ARKK — ARK Innovation (haute vol.)</option>
+          <option value="MSTR">MSTR — MicroStrategy (Bitcoin proxy)</option>
+        </optgroup>
+        <optgroup label="₿ Crypto">
+          <option value="BTC-USD">BTC-USD — Bitcoin</option>
+          <option value="ETH-USD">ETH-USD — Ethereum</option>
+          <option value="IBIT">IBIT — iShares Bitcoin ETF</option>
+        </optgroup>
+        <optgroup label="🏢 Actions individuelles">
+          <option value="AAPL">AAPL — Apple</option>
+          <option value="MSFT">MSFT — Microsoft</option>
+          <option value="NVDA">NVDA — NVIDIA</option>
+          <option value="TSLA">TSLA — Tesla</option>
+          <option value="AMZN">AMZN — Amazon</option>
+          <option value="META">META — Meta</option>
+          <option value="GOOGL">GOOGL — Alphabet</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <label>Horizon prédiction</label>
+      <select id="horizon-select">
+        <option value="1">J+1</option>
+        <option value="3" selected>J+3</option>
+        <option value="5">J+5</option>
+        <option value="7">J+7</option>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <label>Historique</label>
+      <select id="history-select">
+        <option value="60">60 jours</option>
+        <option value="90" selected>90 jours</option>
+        <option value="180">180 jours</option>
+        <option value="365">1 an</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="runAnalysis()" id="run-btn">▶ Analyser</button>
+    <button class="btn btn-secondary" onclick="exportData()" id="export-btn" disabled>↓ Export</button>
+  </div>
+
+  <!-- Controls Backtest -->
+  <div class="controls" id="controls-backtest" style="display:none; grid-template-columns: 1fr 1fr 1fr 1fr auto;">
+    <div class="ctrl-group">
+      <label>ETF / Ticker</label>
+      <select id="etf-select-bt">
+        <optgroup label="🇺🇸 Indices US">
+          <option value="SPY">SPY — S&P 500</option>
+          <option value="QQQ">QQQ — NASDAQ 100</option>
+          <option value="DIA">DIA — Dow Jones</option>
+          <option value="IWM">IWM — Russell 2000</option>
+          <option value="VTI">VTI — Total Market US</option>
+        </optgroup>
+        <optgroup label="🌍 International">
+          <option value="EEM">EEM — Marchés émergents</option>
+          <option value="EFA">EFA — Europe/Asie/Pacifique</option>
+          <option value="FXI">FXI — Chine</option>
+        </optgroup>
+        <optgroup label="📦 Secteurs">
+          <option value="XLK">XLK — Technologie</option>
+          <option value="XLF">XLF — Finance</option>
+          <option value="XLE">XLE — Énergie</option>
+        </optgroup>
+        <optgroup label="💰 Obligations">
+          <option value="TLT">TLT — Obligations 20ans</option>
+          <option value="HYG">HYG — High Yield</option>
+        </optgroup>
+        <optgroup label="🏅 Matières Premières">
+          <option value="GLD">GLD — Or</option>
+          <option value="SLV">SLV — Argent</option>
+          <option value="USO">USO — Pétrole</option>
+        </optgroup>
+        <optgroup label="⚡ Haute Volatilité">
+          <option value="TQQQ">TQQQ — NASDAQ 3x Bull</option>
+          <option value="SQQQ">SQQQ — NASDAQ 3x Bear</option>
+          <option value="ARKK">ARKK — ARK Innovation</option>
+          <option value="SOXL">SOXL — Semi-conducteurs 3x</option>
+        </optgroup>
+        <optgroup label="₿ Crypto">
+          <option value="BTC-USD">BTC-USD — Bitcoin</option>
+          <option value="ETH-USD">ETH-USD — Ethereum</option>
+        </optgroup>
+        <optgroup label="🏢 Actions">
+          <option value="AAPL">AAPL — Apple</option>
+          <option value="MSFT">MSFT — Microsoft</option>
+          <option value="NVDA">NVDA — NVIDIA</option>
+          <option value="TSLA">TSLA — Tesla</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <label>Date d'analyse</label>
+      <input type="date" id="bt-date" />
+    </div>
+    <div class="ctrl-group">
+      <label>Horizon</label>
+      <select id="bt-horizon">
+        <option value="1">J+1</option>
+        <option value="3" selected>J+3</option>
+        <option value="5">J+5</option>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <label>Fenêtre analyse</label>
+      <select id="bt-window">
+        <option value="60">60 jours</option>
+        <option value="90" selected>90 jours</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="runBacktest()" id="bt-run-btn">🔬 Backtester</button>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">Prêt — sélectionnez un ETF et lancez l'analyse</span>
+  </div>
+
+  <!-- Debug Panel -->
+  <div class="debug-panel" id="debug-panel">
+    <div class="debug-header" onclick="toggleDebugBody()">
+      <div class="debug-header-left">
+        <span>⚠️</span>
+        <span id="debug-title">Erreur de chargement — Détails</span>
+      </div>
+      <button class="debug-toggle-btn" id="debug-toggle-text">▼ Afficher</button>
+    </div>
+    <div class="debug-body" id="debug-body">
+      <div class="debug-log" id="debug-log"></div>
+      <div class="debug-actions">
+        <button onclick="retryWithProxy()">↺ Réessayer</button>
+        <button onclick="copyDebugLog()">📋 Copier les logs</button>
+        <button onclick="clearDebugPanel()">✕ Fermer</button>
+        <button onclick="openYahooDirectly()">🌐 Ouvrir Yahoo Finance</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-wrapper" id="chart-wrapper">
+    <div id="loader">
+      <div class="spinner"></div>
+      <div class="loader-text" id="loader-text">Récupération des données...</div>
+    </div>
+    <div class="empty-state" id="empty-state">
+      <div class="icon">📈</div>
+      <div>Lancez une analyse pour afficher le graphique</div>
+    </div>
+    <canvas id="main-chart" style="display:none;" height="400"></canvas>
+  </div>
+
+  <!-- Backtest result -->
+  <div class="backtest-result" id="backtest-result">
+    <h3>📊 Résultat du backtest</h3>
+    <div id="bt-result-content"></div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics-grid" id="metrics-grid"></div>
+
+  <!-- Predictions -->
+  <div class="pred-section" id="pred-section" style="display:none;">
+    <h2>Prédictions — Cône de probabilité</h2>
+    <table class="pred-table">
+      <thead>
+        <tr>
+          <th>Scénario</th>
+          <th>Horizon</th>
+          <th>Prix cible</th>
+          <th>Variation</th>
+          <th>Confiance</th>
+          <th>Modèle dominant</th>
+        </tr>
+      </thead>
+      <tbody id="pred-table-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Indicators -->
+  <div class="indicators-grid" id="indicators-grid" style="display:none;">
+    <div class="ind-card">
+      <h3>Indicateurs Tendance</h3>
+      <div id="ind-trend"></div>
+    </div>
+    <div class="ind-card">
+      <h3>Indicateurs Momentum</h3>
+      <div id="ind-momentum"></div>
+    </div>
+    <div class="ind-card">
+      <h3>Indicateurs Volatilité</h3>
+      <div id="ind-vol"></div>
+    </div>
+    <div class="ind-card">
+      <h3>Signaux Composites</h3>
+      <div id="ind-signals"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// THEME MANAGEMENT
+// ============================================================
+
+function toggleTheme(checkbox) {
+  const theme = checkbox.checked ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('etf-theme', theme);
+  // Re-render chart if available
+  if (lastResult) {
+    const { series, predictions, horizon } = lastResult;
+    renderChart(series, predictions, horizon, lastResult.backtestFuture || null);
+  }
+}
+
+// Init theme
+(function() {
+  const saved = localStorage.getItem('etf-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  if (saved === 'dark') {
+    document.getElementById('theme-checkbox').checked = true;
+  }
+})();
+
+// ============================================================
+// DEBUG PANEL
+// ============================================================
+
+let debugLogs = [];
+let debugOpen = false;
+let lastTicker = null;
+
+function addDebugLog(level, msg) {
+  const now = new Date();
+  const time = now.toTimeString().slice(0, 8);
+  debugLogs.push({ time, level, msg });
+  refreshDebugLog();
+}
+
+function refreshDebugLog() {
+  const container = document.getElementById('debug-log');
+  container.innerHTML = debugLogs.slice(-30).map(e => {
+    const cls = e.level === 'ok' ? 'log-ok' : e.level === 'warn' ? 'log-warn' : 'log-err';
+    const icon = e.level === 'ok' ? '✓' : e.level === 'warn' ? '⚠' : '✗';
+    return `<div class="log-entry"><span class="log-time">${e.time}</span><span class="${cls}">${icon}</span><span>${e.msg}</span></div>`;
+  }).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+function showDebugPanel(title) {
+  document.getElementById('debug-panel').classList.add('visible');
+  document.getElementById('debug-title').textContent = title;
+}
+
+function clearDebugPanel() {
+  document.getElementById('debug-panel').classList.remove('visible');
+  debugLogs = [];
+}
+
+function toggleDebugBody() {
+  debugOpen = !debugOpen;
+  document.getElementById('debug-body').classList.toggle('open', debugOpen);
+  document.getElementById('debug-toggle-text').textContent = debugOpen ? '▲ Masquer' : '▼ Afficher';
+}
+
+function copyDebugLog() {
+  const text = debugLogs.map(e => `[${e.time}][${e.level.toUpperCase()}] ${e.msg}`).join('\n');
+  navigator.clipboard.writeText(text).then(() => alert('Logs copiés!')).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('Logs copiés!');
+  });
+}
+
+function openYahooDirectly() {
+  const ticker = lastTicker || document.getElementById('etf-select').value;
+  window.open(`https://finance.yahoo.com/quote/${ticker}`, '_blank');
+}
+
+async function retryWithProxy() {
+  clearDebugPanel();
+  runAnalysis();
+}
+
+// ============================================================
+// DATA FETCHING
+// ============================================================
+
+let currentMode = 'live';
+let lastResult = null;
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('btn-live').classList.toggle('active', mode === 'live');
+  document.getElementById('btn-backtest').classList.toggle('active', mode === 'backtest');
+  document.getElementById('controls-live').style.display = mode === 'live' ? 'grid' : 'none';
+  document.getElementById('controls-backtest').style.display = mode === 'backtest' ? 'grid' : 'none';
+  clearUI();
+}
+
+// Set default backtest date
+(function() {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  while(d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() - 1);
+  document.getElementById('bt-date').value = d.toISOString().split('T')[0];
+})();
+
+function parseYahooResult(data) {
+  const result = data?.chart?.result?.[0];
+  if (!result) return null;
+  const timestamps = result.timestamp;
+  const quotes = result.indicators?.quote?.[0];
+  if (!timestamps || !quotes?.close) return null;
+  const series = [];
+  for (let i = 0; i < timestamps.length; i++) {
+    if (quotes.close[i] == null) continue;
+    series.push({
+      date:   new Date(timestamps[i] * 1000),
+      open:   quotes.open[i]   ?? quotes.close[i],
+      high:   quotes.high[i]   ?? quotes.close[i],
+      low:    quotes.low[i]    ?? quotes.close[i],
+      close:  quotes.close[i],
+      volume: quotes.volume[i] || 0
+    });
+  }
+  return series.length > 0 ? series : null;
+}
+
+// Proxy local Node.js (proxy.js) — contourne le blocage Yahoo sur origin:null
+const LOCAL_PROXY = 'http://localhost:7890';
+
+async function fetchYahooData(ticker, days) {
+  lastTicker = ticker;
+  const period2 = Math.floor(Date.now() / 1000);
+  const period1 = period2 - (days + 30) * 24 * 3600;
+  const errors = [];
+  const path = `/v8/finance/chart/${ticker}?interval=1d&period1=${period1}&period2=${period2}&events=div`;
+
+  // ── SOURCE 1 : proxy local Node.js (proxy.js) ─────────────────
+  // Lance proxy.js avec Node.js avant d'ouvrir ce fichier
+  const proxyUrl = `${LOCAL_PROXY}${path}`;
+  addDebugLog('warn', `Source 1 — Proxy local: ${proxyUrl}`);
+  try {
+    const resp = await fetch(proxyUrl);
+    if (resp.ok) {
+      const data = await resp.json();
+      const series = parseYahooResult(data);
+      if (series) {
+        addDebugLog('ok', `✓ Proxy local: ${series.length} points chargés`);
+        return series.slice(-days);
+      }
+      errors.push('Proxy local: réponse invalide');
+      addDebugLog('warn', '  ⚠ Réponse invalide');
+    } else {
+      errors.push(`Proxy local: HTTP ${resp.status}`);
+      addDebugLog('err', `  ✗ HTTP ${resp.status}`);
+    }
+  } catch(e) {
+    errors.push(`Proxy local: ${e.message}`);
+    addDebugLog('warn', `  ⚠ ${e.message} — proxy.js est-il lancé ? (node proxy.js)`);
+  }
+
+  // ── SOURCE 2 : Yahoo direct (fonctionne si servi par un serveur HTTP) ─
+  for (const host of ['query1', 'query2']) {
+    const url = `https://${host}.finance.yahoo.com${path}`;
+    addDebugLog('warn', `Source 2 — Yahoo direct (${host}): ${url}`);
+    try {
+      const resp = await fetch(url);
+      if (resp.ok) {
+        const data = await resp.json();
+        const series = parseYahooResult(data);
+        if (series) {
+          addDebugLog('ok', `✓ Yahoo direct (${host}): ${series.length} points`);
+          return series.slice(-days);
+        }
+        errors.push(`Yahoo ${host}: réponse invalide`);
+      } else {
+        errors.push(`Yahoo ${host}: HTTP ${resp.status}`);
+        addDebugLog('err', `  ✗ HTTP ${resp.status}`);
+      }
+    } catch(e) {
+      errors.push(`Yahoo ${host}: ${e.message}`);
+      addDebugLog('err', `  ✗ ${e.message}`);
+    }
+  }
+
+  // ── Tout a échoué ──────────────────────────────────────────────
+  addDebugLog('err', [
+    `Impossible de charger ${ticker}.`,
+    `Erreurs: ${errors.join(' | ')}`,
+    `→ Solution: lancer le proxy local avec  node proxy.js  puis recharger la page.`
+  ].join('\n'));
+  throw new Error(`Données indisponibles — lancer proxy.js (voir debug)`);
+}
+
+// ============================================================
+// TECHNICAL INDICATORS
+// ============================================================
+
+function calcSMA(data, n) {
+  return data.map((_, i) => {
+    if (i < n - 1) return null;
+    const slice = data.slice(i - n + 1, i + 1);
+    return slice.reduce((a, b) => a + b, 0) / n;
+  });
+}
+
+function calcEMA(data, n) {
+  const k = 2 / (n + 1);
+  const result = new Array(data.length).fill(null);
+  let ema = data[0];
+  result[0] = ema;
+  for (let i = 1; i < data.length; i++) {
+    ema = data[i] * k + ema * (1 - k);
+    result[i] = ema;
+  }
+  return result;
+}
+
+function calcMACD(closes) {
+  const ema12 = calcEMA(closes, 12);
+  const ema26 = calcEMA(closes, 26);
+  const macd = closes.map((_, i) => (ema12[i] != null && ema26[i] != null) ? ema12[i] - ema26[i] : null);
+  const signal = calcEMA(macd.filter(x => x !== null), 9);
+  const offset = macd.filter(x => x === null).length;
+  const signalAligned = new Array(offset).fill(null);
+  signal.forEach(v => signalAligned.push(v));
+  const histogram = macd.map((v, i) => v != null && signalAligned[i] != null ? v - signalAligned[i] : null);
+  return { macd, signal: signalAligned, histogram };
+}
+
+function calcRSI(closes, n = 14) {
+  const changes = closes.map((c, i) => i === 0 ? 0 : c - closes[i-1]);
+  const result = new Array(closes.length).fill(null);
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= n; i++) {
+    if (changes[i] > 0) gains += changes[i];
+    else losses -= changes[i];
+  }
+  let avgGain = gains / n, avgLoss = losses / n;
+  result[n] = 100 - 100 / (1 + avgGain / (avgLoss || 0.0001));
+  for (let i = n + 1; i < closes.length; i++) {
+    const g = changes[i] > 0 ? changes[i] : 0;
+    const l = changes[i] < 0 ? -changes[i] : 0;
+    avgGain = (avgGain * (n - 1) + g) / n;
+    avgLoss = (avgLoss * (n - 1) + l) / n;
+    result[i] = 100 - 100 / (1 + avgGain / (avgLoss || 0.0001));
+  }
+  return result;
+}
+
+function calcBollinger(closes, n = 20, k = 2) {
+  const sma = calcSMA(closes, n);
+  const upper = [], lower = [], bandwidth = [];
+  for (let i = 0; i < closes.length; i++) {
+    if (sma[i] == null) { upper.push(null); lower.push(null); bandwidth.push(null); continue; }
+    const slice = closes.slice(i - n + 1, i + 1);
+    const mean = sma[i];
+    const std = Math.sqrt(slice.reduce((a, b) => a + (b - mean) ** 2, 0) / n);
+    upper.push(mean + k * std);
+    lower.push(mean - k * std);
+    bandwidth.push((upper[upper.length-1] - lower[lower.length-1]) / mean);
+  }
+  return { upper, lower, mid: sma, bandwidth };
+}
+
+function calcATR(highs, lows, closes, n = 14) {
+  const tr = highs.map((h, i) => {
+    if (i === 0) return h - lows[i];
+    return Math.max(h - lows[i], Math.abs(h - closes[i-1]), Math.abs(lows[i] - closes[i-1]));
+  });
+  return calcSMA(tr, n);
+}
+
+function calcStochastic(highs, lows, closes, n = 14) {
+  return closes.map((c, i) => {
+    if (i < n - 1) return null;
+    const hh = Math.max(...highs.slice(i - n + 1, i + 1));
+    const ll = Math.min(...lows.slice(i - n + 1, i + 1));
+    return hh === ll ? 50 : ((c - ll) / (hh - ll)) * 100;
+  });
+}
+
+function calcMomentum(closes, n = 10) {
+  return closes.map((c, i) => i < n ? null : (c / closes[i - n] - 1) * 100);
+}
+
+function calcVWAP(series) {
+  let cumPV = 0, cumVol = 0;
+  return series.map(d => {
+    const typical = (d.high + d.low + d.close) / 3;
+    cumPV += typical * d.volume;
+    cumVol += d.volume;
+    return cumPV / cumVol;
+  });
+}
+
+// ============================================================
+// PREDICTION ENGINE — Ensemble Models
+// ============================================================
+
+function polyRegression(y, degree = 2) {
+  const n = y.length;
+  const x = Array.from({length: n}, (_, i) => i / (n - 1));
+  const A = x.map(xi => Array.from({length: degree + 1}, (_, d) => Math.pow(xi, d)));
+  const AtA = Array.from({length: degree + 1}, (_, i) =>
+    Array.from({length: degree + 1}, (_, j) =>
+      A.reduce((s, row) => s + row[i] * row[j], 0)
+    )
+  );
+  const Aty = Array.from({length: degree + 1}, (_, i) =>
+    A.reduce((s, row, k) => s + row[i] * y[k], 0)
+  );
+  const aug = AtA.map((row, i) => [...row, Aty[i]]);
+  const m = degree + 1;
+  for (let col = 0; col < m; col++) {
+    let maxRow = col;
+    for (let row = col + 1; row < m; row++)
+      if (Math.abs(aug[row][col]) > Math.abs(aug[maxRow][col])) maxRow = row;
+    [aug[col], aug[maxRow]] = [aug[maxRow], aug[col]];
+    if (Math.abs(aug[col][col]) < 1e-10) continue;
+    for (let row = 0; row < m; row++) {
+      if (row === col) continue;
+      const factor = aug[row][col] / aug[col][col];
+      for (let k = col; k <= m; k++) aug[row][k] -= factor * aug[col][k];
+    }
+  }
+  const beta = aug.map((row, i) => row[m] / row[i]);
+  return (xFuture) => beta.reduce((s, b, d) => s + b * Math.pow(xFuture, d), 0);
+}
+
+function lstmSimulated(closes, horizon) {
+  const n = closes.length;
+  const recentWindow = Math.min(30, n);
+  const recent = closes.slice(-recentWindow);
+  const alpha_fast = 0.3, alpha_mid = 0.1, alpha_slow = 0.03;
+  let fast = recent[0], mid = recent[0], slow = recent[0];
+  for (const v of recent) {
+    fast = alpha_fast * v + (1 - alpha_fast) * fast;
+    mid = alpha_mid * v + (1 - alpha_mid) * mid;
+    slow = alpha_slow * v + (1 - alpha_slow) * slow;
+  }
+  const last = recent[recent.length - 1];
+  const trend_fast = last - fast;
+  const trend_mid = (last - mid) * 0.3;
+  const trend_slow = (last - slow) * 0.05;
+  const changes = recent.map((v, i) => i === 0 ? 0 : v - recent[i-1]);
+  const acf1 = changes.slice(1).reduce((s, v, i) => s + v * changes[i], 0) /
+               (changes.reduce((s, v) => s + v * v, 0) || 1);
+  const predicted = [];
+  let prev = last;
+  let prevChange = changes[changes.length - 1];
+  for (let h = 1; h <= horizon; h++) {
+    const momentumDecay = Math.exp(-0.3 * h);
+    const nextChange = acf1 * prevChange * momentumDecay +
+                       (trend_fast * 0.5 + trend_mid + trend_slow) / recentWindow;
+    prev = prev + nextChange;
+    predicted.push(prev);
+    prevChange = nextChange;
+  }
+  return predicted;
+}
+
+function xgboostSimulated(series, horizon) {
+  const closes = series.map(d => d.close);
+  const highs = series.map(d => d.high);
+  const lows = series.map(d => d.low);
+  const n = closes.length;
+  const rsi = calcRSI(closes);
+  const macd = calcMACD(closes);
+  const atr = calcATR(highs, lows, closes);
+  const mom = calcMomentum(closes, 5);
+  const ema5 = calcEMA(closes, 5);
+  const ema20 = calcEMA(closes, 20);
+  const last = closes[n-1];
+  const lastRSI = rsi[n-1] || 50;
+  const lastMACD = macd.histogram[n-1] || 0;
+  const lastATR = atr[n-1] || last * 0.01;
+  const lastMom = mom[n-1] || 0;
+  const emaCross = (ema5[n-1] - ema20[n-1]) / last;
+  let signal = 0;
+  if (lastRSI < 30) signal += 0.8;
+  else if (lastRSI < 45) signal += 0.4;
+  else if (lastRSI > 70) signal -= 0.8;
+  else if (lastRSI > 55) signal -= 0.3;
+  if (lastMACD > 0) signal += 0.5; else signal -= 0.5;
+  signal += Math.sign(emaCross) * Math.min(Math.abs(emaCross) * 20, 0.6);
+  signal += Math.sign(lastMom) * Math.min(Math.abs(lastMom) / 5, 0.4);
+  const dailyMove = signal * lastATR * 0.4;
+  return Array.from({length: horizon}, (_, i) => last + dailyMove * (i + 1));
+}
+
+function calcConfidenceInterval(closes, horizon, predictions) {
+  const n = closes.length;
+  const logReturns = closes.slice(1).map((c, i) => Math.log(c / closes[i]));
+  const meanRet = logReturns.reduce((a, b) => a + b, 0) / logReturns.length;
+  const variance = logReturns.reduce((a, b) => a + (b - meanRet) ** 2, 0) / logReturns.length;
+  const dailyVol = Math.sqrt(variance);
+  const last = closes[closes.length - 1];
+  return predictions.map((pred, i) => {
+    const h = i + 1;
+    const volScaled = dailyVol * Math.sqrt(h) * last;
+    return {
+      p10: pred - volScaled * 2.33,
+      p25: pred - volScaled * 1.64,
+      p50: pred,
+      p75: pred + volScaled * 1.64,
+      p90: pred + volScaled * 2.33,
+      sigma: volScaled
+    };
+  });
+}
+
+function ensemblePredict(series, horizon) {
+  const closes = series.map(d => d.close);
+  const n = closes.length;
+  const polyFn = polyRegression(closes, 3);
+  const polyPreds = Array.from({length: horizon}, (_, i) => {
+    const xFuture = (n + i) / (n - 1);
+    return polyFn(xFuture);
+  });
+  const lstmPreds = lstmSimulated(closes, horizon);
+  const xgbPreds = xgboostSimulated(series, horizon);
+  const ema5 = calcEMA(closes, 5);
+  const emaSlope = (ema5[n-1] - ema5[n-5]) / 4;
+  const emaPreds = Array.from({length: horizon}, (_, i) =>
+    ema5[n-1] + emaSlope * (i + 1)
+  );
+  const wPoly = 0.20, wLSTM = 0.35, wXGB = 0.30, wEMA = 0.15;
+  const ensemble = Array.from({length: horizon}, (_, i) =>
+    wPoly * polyPreds[i] + wLSTM * lstmPreds[i] + wXGB * xgbPreds[i] + wEMA * emaPreds[i]
+  );
+  const ci = calcConfidenceInterval(closes, horizon, ensemble);
+  const agreementScores = ensemble.map((e, i) => {
+    const preds = [polyPreds[i], lstmPreds[i], xgbPreds[i], emaPreds[i]];
+    const stdDev = Math.sqrt(preds.reduce((a, b) => a + (b-e)**2, 0) / 4);
+    const relStd = stdDev / Math.abs(e);
+    return Math.max(0.1, 1 - relStd * 10);
+  });
+  return { ensemble, polyPreds, lstmPreds, xgbPreds, emaPreds, ci, agreementScores, modelBreakdown: { wPoly, wLSTM, wXGB, wEMA } };
+}
+
+// ============================================================
+// SCENARIO GENERATION
+// ============================================================
+
+function generateScenarios(series, horizon, predictions) {
+  const closes = series.map(d => d.close);
+  const last = closes[closes.length - 1];
+  const ci = predictions.ci;
+  const targetH = horizon - 1;
+  const hTarget = ci[targetH];
+  const ensemble = predictions.ensemble[targetH];
+  const logRet = closes.slice(-30).map((c, i, a) => i === 0 ? 0 : Math.log(c / a[i-1]));
+  const vol = Math.sqrt(logRet.reduce((a, b) => a + b*b, 0) / logRet.length) * Math.sqrt(horizon);
+  const baseChange = (ensemble - last) / last;
+  const scenarios = [
+    { label: 'Fort haussier', price: last * (1 + baseChange + vol * 1.5), confidence: Math.round(Math.max(5, 15 - Math.abs(baseChange * 100) * 2)), direction: 'up', model: 'XGBoost' },
+    { label: 'Haussier modéré', price: last * (1 + baseChange + vol * 0.5), confidence: Math.round(25 + (baseChange > 0 ? 10 : 0)), direction: 'up', model: 'LSTM' },
+    { label: 'Consensus', price: ensemble, confidence: Math.round(35 + predictions.agreementScores[targetH] * 20), direction: ensemble > last ? 'up' : ensemble < last * 0.998 ? 'down' : 'flat', model: 'Ensemble (4 modèles)' },
+    { label: 'Baissier modéré', price: last * (1 + baseChange - vol * 0.5), confidence: Math.round(20 + (baseChange < 0 ? 10 : 0)), direction: 'down', model: 'Poly Regression' },
+    { label: 'Fort baissier', price: last * (1 + baseChange - vol * 1.5), confidence: Math.round(Math.max(3, 10 - Math.abs(baseChange * 100))), direction: 'down', model: 'EMA Extrap.' }
+  ];
+  const totalConf = scenarios.reduce((a, b) => a + b.confidence, 0);
+  scenarios.forEach(s => { s.confidence = Math.round((s.confidence / totalConf) * 100); });
+  return scenarios;
+}
+
+// ============================================================
+// CANVAS RENDERING — theme-aware, cone bien visible
+// ============================================================
+
+function getThemeColors() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return {
+    isDark,
+    chartBg: isDark ? '#0d1320' : '#ffffff',
+    gridLine: isDark ? 'rgba(26,36,56,0.9)' : 'rgba(180,200,220,0.6)',
+    axisLabel: isDark ? '#4a6080' : '#8a9ab0',
+    histLine: isDark ? ['rgba(0,212,255,0.7)', 'rgba(0,212,255,1)'] : ['rgba(0,100,200,0.6)', 'rgba(0,100,200,1)'],
+    histFill: isDark ? ['rgba(0,212,255,0.1)', 'rgba(0,212,255,0)'] : ['rgba(0,100,200,0.06)', 'rgba(0,100,200,0)'],
+    sepLine: isDark ? 'rgba(0,212,255,0.35)' : 'rgba(0,100,200,0.3)',
+    sepLabel: isDark ? 'rgba(0,212,255,0.6)' : 'rgba(0,100,200,0.7)',
+    bullCone: isDark ? [0,255,136] : [0,140,70],
+    bearCone: isDark ? [255,51,102] : [200,0,50],
+    ensGradStart: isDark ? '#ffffff' : '#1a2e45',
+    ensGradBull: isDark ? '#00ff88' : '#00873a',
+    ensGradBear: isDark ? '#ff3366' : '#d9003a',
+    modelColors: {
+      lstm: isDark ? 'rgba(0,212,255,0.55)' : 'rgba(0,100,200,0.5)',
+      xgb: isDark ? 'rgba(255,170,0,0.55)' : 'rgba(200,120,0,0.5)',
+      poly: isDark ? 'rgba(200,136,255,0.45)' : 'rgba(130,50,200,0.4)',
+      ema: isDark ? 'rgba(128,180,255,0.4)' : 'rgba(60,130,220,0.35)',
+    },
+    legendMuted: isDark ? '#4a6080' : '#8a9ab0',
+    nowDot: isDark ? '#00d4ff' : '#0077cc',
+    btActual: isDark ? '#ffaa00' : '#d97706',
+  };
+}
+
+function renderChart(series, predictions, horizon, backtestFuture = null) {
+  const canvas = document.getElementById('main-chart');
+  const ctx = canvas.getContext('2d');
+  const C = getThemeColors();
+
+  canvas.style.display = 'block';
+  document.getElementById('empty-state').style.display = 'none';
+
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const W = rect.width - 40;
+
+  // More height = cone more visible
+  const H = 460;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+
+  // Give the cone more horizontal space: increase right padding
+  const PAD = { top: 34, right: 110, bottom: 52, left: 72 };
+  const plotW = W - PAD.left - PAD.right;
+  const plotH = H - PAD.top - PAD.bottom;
+
+  // Show more history to balance with cone
+  const displayDays = Math.min(series.length, 60);
+  const hist = series.slice(-displayDays);
+  const closes = hist.map(d => d.close);
+  const ci = predictions.ci;
+
+  // Give CONE proportionally more space: 40% of width for predictions
+  // Remap so historical is 60%, future is 40%
+  const histRatio = 0.60;
+  const futureRatio = 0.40;
+
+  function xPosHist(i) {
+    return PAD.left + (i / (displayDays - 1)) * (plotW * histRatio);
+  }
+  function xPosFuture(i) {
+    return PAD.left + plotW * histRatio + ((i + 1) / horizon) * (plotW * futureRatio);
+  }
+  function xPosSep() {
+    return PAD.left + plotW * histRatio;
+  }
+
+  // Price range — include a minimum spread so cone is visible
+  const allPrices = [
+    ...closes,
+    ...predictions.ensemble,
+    ...ci.map(c => c.p10),
+    ...ci.map(c => c.p90)
+  ];
+  if (backtestFuture) allPrices.push(...backtestFuture.map(d => d.close));
+
+  let minP = Math.min(...allPrices);
+  let maxP = Math.max(...allPrices);
+  const spread = maxP - minP;
+  // Ensure at least 3% spread for visibility
+  const minSpread = closes[closes.length-1] * 0.03;
+  if (spread < minSpread) {
+    const mid = (maxP + minP) / 2;
+    minP = mid - minSpread / 2;
+    maxP = mid + minSpread / 2;
+  }
+  minP *= 0.993;
+  maxP *= 1.007;
+  const rangeP = maxP - minP;
+
+  function yPos(p) { return PAD.top + (1 - (p - minP) / rangeP) * plotH; }
+
+  // Background
+  ctx.fillStyle = C.chartBg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = C.gridLine;
+  ctx.lineWidth = 1;
+  const gridLines = 6;
+  for (let i = 0; i <= gridLines; i++) {
+    const y = PAD.top + (i / gridLines) * plotH;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(W - PAD.right, y); ctx.stroke();
+    const price = maxP - (i / gridLines) * rangeP;
+    ctx.fillStyle = C.axisLabel;
+    ctx.font = '10px Space Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(price.toFixed(2), PAD.left - 6, y + 4);
+  }
+
+  // Vertical separator
+  const sepX = xPosSep();
+  ctx.strokeStyle = C.sepLine;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(sepX, PAD.top); ctx.lineTo(sepX, PAD.top + plotH); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = C.sepLabel;
+  ctx.font = 'bold 9px Space Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('MAINTENANT', sepX, PAD.top - 10);
+
+  // ---- CONE OF CONFIDENCE ----
+  const coneStartX = sepX;
+  const lastClose = closes[closes.length - 1];
+  const coneStartY = yPos(lastClose);
+  const isBullish = predictions.ensemble[horizon-1] > lastClose;
+  const [cr, cg, cb] = isBullish ? C.bullCone : C.bearCone;
+
+  // Outer band (p10-p90) — stronger fill for visibility
+  const bands = [
+    { lo: 'p10', hi: 'p90', alpha0: 0.12, alpha1: 0.25 },
+    { lo: 'p25', hi: 'p75', alpha0: 0.20, alpha1: 0.38 },
+  ];
+
+  for (const band of bands) {
+    ctx.beginPath();
+    ctx.moveTo(coneStartX, coneStartY);
+    for (let i = 0; i < horizon; i++) {
+      ctx.lineTo(xPosFuture(i), yPos(ci[i][band.hi]));
+    }
+    for (let i = horizon - 1; i >= 0; i--) {
+      ctx.lineTo(xPosFuture(i), yPos(ci[i][band.lo]));
+    }
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(coneStartX, 0, xPosFuture(horizon - 1), 0);
+    grad.addColorStop(0, `rgba(${cr},${cg},${cb},${band.alpha0})`);
+    grad.addColorStop(1, `rgba(${cr},${cg},${cb},${band.alpha1})`);
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  // Cone border lines
+  const drawConeEdge = (key, alpha, dash) => {
+    ctx.beginPath();
+    ctx.moveTo(coneStartX, coneStartY);
+    for (let i = 0; i < horizon; i++) {
+      ctx.lineTo(xPosFuture(i), yPos(ci[i][key]));
+    }
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha})`;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash(dash);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  };
+
+  drawConeEdge('p90', 0.65, [4, 4]);
+  drawConeEdge('p10', 0.55, [4, 4]);
+
+  // Individual model lines
+  const modelLines = [
+    { data: predictions.lstmPreds, color: C.modelColors.lstm, label: 'LSTM', dash: [5,3] },
+    { data: predictions.xgbPreds, color: C.modelColors.xgb, label: 'XGB', dash: [2,4] },
+    { data: predictions.polyPreds, color: C.modelColors.poly, label: 'Poly', dash: [7,3] },
+    { data: predictions.emaPreds, color: C.modelColors.ema, label: 'EMA', dash: [1,5] },
+  ];
+
+  modelLines.forEach(m => {
+    ctx.beginPath();
+    ctx.moveTo(coneStartX, yPos(lastClose));
+    m.data.forEach((v, i) => ctx.lineTo(xPosFuture(i), yPos(v)));
+    ctx.strokeStyle = m.color;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash(m.dash);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // Ensemble prediction line
+  ctx.beginPath();
+  ctx.moveTo(coneStartX, yPos(lastClose));
+  predictions.ensemble.forEach((v, i) => ctx.lineTo(xPosFuture(i), yPos(v)));
+  const ensGrad = ctx.createLinearGradient(coneStartX, 0, xPosFuture(horizon - 1), 0);
+  ensGrad.addColorStop(0, C.ensGradStart);
+  ensGrad.addColorStop(1, isBullish ? C.ensGradBull : C.ensGradBear);
+  ctx.strokeStyle = ensGrad;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Historical price line
+  ctx.beginPath();
+  hist.forEach((d, i) => {
+    const x = xPosHist(i);
+    const y = yPos(d.close);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  const histGrad = ctx.createLinearGradient(PAD.left, 0, sepX, 0);
+  histGrad.addColorStop(0, C.histLine[0]);
+  histGrad.addColorStop(1, C.histLine[1]);
+  ctx.strokeStyle = histGrad;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Area under historical
+  ctx.beginPath();
+  hist.forEach((d, i) => {
+    const x = xPosHist(i);
+    const y = yPos(d.close);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.lineTo(xPosHist(displayDays - 1), PAD.top + plotH);
+  ctx.lineTo(PAD.left, PAD.top + plotH);
+  ctx.closePath();
+  const areaGrad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + plotH);
+  areaGrad.addColorStop(0, C.histFill[0]);
+  areaGrad.addColorStop(1, C.histFill[1]);
+  ctx.fillStyle = areaGrad;
+  ctx.fill();
+
+  // Backtest actual future
+  if (backtestFuture && backtestFuture.length > 0) {
+    ctx.beginPath();
+    ctx.moveTo(coneStartX, yPos(lastClose));
+    backtestFuture.slice(0, horizon).forEach((d, i) => {
+      ctx.lineTo(xPosFuture(i), yPos(d.close));
+    });
+    ctx.strokeStyle = C.btActual;
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([5, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (backtestFuture.length >= 1) {
+      const lastBt = backtestFuture[Math.min(horizon, backtestFuture.length) - 1];
+      const btX = xPosFuture(Math.min(horizon, backtestFuture.length) - 1);
+      const btY = yPos(lastBt.close);
+      ctx.fillStyle = C.btActual;
+      ctx.font = 'bold 10px Space Mono, monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('RÉEL', btX + 4, btY + 4);
+    }
+  }
+
+  // Confidence labels on cone — placed clearly to the right
+  const labelX = xPosFuture(horizon - 1) + 6;
+  [
+    { band: 'p90', label: '90%', alpha: 0.9 },
+    { band: 'p50', label: '50%', alpha: 0.6 },
+    { band: 'p10', label: '10%', alpha: 0.75 },
+  ].forEach(cl => {
+    const y = yPos(ci[horizon-1][cl.band]);
+    ctx.fillStyle = cl.band === 'p50'
+      ? (C.isDark ? `rgba(255,255,255,${cl.alpha})` : `rgba(30,60,90,${cl.alpha})`)
+      : `rgba(${cr},${cg},${cb},${cl.alpha})`;
+    ctx.font = 'bold 9px Space Mono, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(cl.label, labelX, y + 3);
+    ctx.font = '9px Space Mono, monospace';
+    ctx.fillText(ci[horizon-1][cl.band].toFixed(2), labelX, y + 14);
+  });
+
+  // Current price dot
+  ctx.beginPath();
+  ctx.arc(coneStartX, yPos(lastClose), 6, 0, Math.PI * 2);
+  ctx.fillStyle = C.nowDot;
+  ctx.fill();
+  ctx.strokeStyle = C.chartBg;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // X-axis dates
+  ctx.fillStyle = C.axisLabel;
+  ctx.font = '9px Space Mono, monospace';
+  ctx.textAlign = 'center';
+
+  // Historical dates
+  const histStep = Math.ceil(displayDays / 5);
+  for (let i = 0; i < displayDays; i += histStep) {
+    const date = hist[i].date;
+    ctx.fillText(`${date.getDate()}/${date.getMonth()+1}`, xPosHist(i), PAD.top + plotH + 20);
+  }
+  // Future dates
+  for (let i = 0; i < horizon; i++) {
+    const futureDays = i + 1;
+    const date = new Date(hist[hist.length-1].date);
+    date.setDate(date.getDate() + futureDays);
+    ctx.fillText(`${date.getDate()}/${date.getMonth()+1}`, xPosFuture(i), PAD.top + plotH + 20);
+  }
+
+  // Legend
+  const legendItems = [
+    { color: C.histLine[1], label: 'Historique', dash: false },
+    { color: C.ensGradStart, label: 'Ensemble', dash: false },
+    { color: C.modelColors.lstm, label: 'LSTM', dash: true },
+    { color: C.modelColors.xgb, label: 'XGB', dash: true },
+    { color: C.modelColors.poly, label: 'Poly', dash: true },
+  ];
+  if (backtestFuture) legendItems.push({ color: C.btActual, label: 'Réel', dash: true, thick: true });
+
+  let lx = PAD.left;
+  legendItems.forEach(item => {
+    ctx.beginPath();
+    ctx.setLineDash(item.dash ? [4, 3] : []);
+    ctx.strokeStyle = item.color;
+    ctx.lineWidth = item.thick ? 2.5 : 1.5;
+    ctx.moveTo(lx, H - 14);
+    ctx.lineTo(lx + 22, H - 14);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = C.axisLabel;
+    ctx.font = '9px Space Mono, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(item.label, lx + 26, H - 10);
+    lx += 72;
+  });
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+
+function setStatus(state, msg) {
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot ' + state;
+  document.getElementById('status-text').textContent = msg;
+}
+
+function showLoader(msg) {
+  document.getElementById('loader-text').textContent = msg;
+  document.getElementById('loader').classList.add('visible');
+}
+
+function hideLoader() {
+  document.getElementById('loader').classList.remove('visible');
+}
+
+function clearUI() {
+  document.getElementById('empty-state').style.display = 'block';
+  document.getElementById('main-chart').style.display = 'none';
+  document.getElementById('metrics-grid').innerHTML = '';
+  document.getElementById('pred-section').style.display = 'none';
+  document.getElementById('indicators-grid').style.display = 'none';
+  document.getElementById('backtest-result').classList.remove('visible');
+  setStatus('', 'Prêt');
+}
+
+function renderMetrics(series, predictions, horizon) {
+  const closes = series.map(d => d.close);
+  const n = closes.length;
+  const last = closes[n-1];
+  const prev = closes[n-2];
+  const change = (last - prev) / prev * 100;
+  const ensembleTarget = predictions.ensemble[horizon-1];
+  const expectedMove = (ensembleTarget - last) / last * 100;
+  const logRet = closes.slice(-20).map((c, i, a) => i === 0 ? 0 : Math.log(c / a[i-1]));
+  const vol = Math.sqrt(logRet.reduce((a, b) => a + b*b, 0) / logRet.length) * Math.sqrt(252) * 100;
+  const rsi = calcRSI(closes);
+  const lastRSI = rsi[n-1]?.toFixed(1) || '--';
+  const atr = calcATR(series.map(d=>d.high), series.map(d=>d.low), closes);
+  const lastATR = atr[n-1]?.toFixed(2) || '--';
+  const confidence = Math.round(predictions.agreementScores[horizon-1] * 100);
+  const metrics = [
+    { label: 'Cours actuel', value: last.toFixed(2), sub: 'USD', cls: 'neutral' },
+    { label: 'Variation J-1', value: `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`, sub: `${(last-prev).toFixed(2)} USD`, cls: change >= 0 ? 'up' : 'down' },
+    { label: `Cible J+${horizon}`, value: ensembleTarget.toFixed(2), sub: `${expectedMove >= 0 ? '+' : ''}${expectedMove.toFixed(2)}%`, cls: expectedMove >= 0 ? 'up' : 'down' },
+    { label: 'Accord modèles', value: `${confidence}%`, sub: '4 algorithmes', cls: confidence > 60 ? 'up' : confidence > 40 ? 'neutral' : 'down' },
+    { label: 'RSI (14)', value: lastRSI, sub: lastRSI > 70 ? 'Surachat' : lastRSI < 30 ? 'Survente' : 'Neutre', cls: lastRSI > 70 ? 'down' : lastRSI < 30 ? 'up' : 'neutral' },
+    { label: 'Vol. Ann.', value: `${vol.toFixed(1)}%`, sub: 'Histor. 20j', cls: vol > 30 ? 'down' : 'neutral' },
+    { label: 'ATR (14)', value: lastATR, sub: 'Amplitude moy.', cls: 'neutral' },
+    { label: 'Confiance 90%', value: `±${(predictions.ci[horizon-1].sigma.toFixed(2))}`, sub: 'Intervalle', cls: 'neutral' },
+  ];
+  const grid = document.getElementById('metrics-grid');
+  grid.innerHTML = metrics.map(m => `
+    <div class="metric-card ${m.cls}">
+      <div class="label">${m.label}</div>
+      <div class="value">${m.value}</div>
+      <div class="sub">${m.sub}</div>
+    </div>
+  `).join('');
+}
+
+function renderPredictions(series, predictions, horizon) {
+  const closes = series.map(d => d.close);
+  const last = closes[closes.length-1];
+  const scenarios = generateScenarios(series, horizon, predictions);
+  const body = document.getElementById('pred-table-body');
+  body.innerHTML = scenarios.map(s => {
+    const change = (s.price - last) / last * 100;
+    const dirClass = s.direction === 'up' ? 'direction-up' : s.direction === 'down' ? 'direction-down' : 'direction-flat';
+    const dirArrow = s.direction === 'up' ? '▲' : s.direction === 'down' ? '▼' : '→';
+    const confColor = s.confidence > 30 ? 'var(--green)' : s.confidence > 15 ? 'var(--warn)' : 'var(--red)';
+    return `
+      <tr>
+        <td>${s.label}</td>
+        <td>J+${horizon}</td>
+        <td style="font-weight:700">${s.price.toFixed(2)}</td>
+        <td class="${dirClass}">${dirArrow} ${change >= 0 ? '+' : ''}${change.toFixed(2)}%</td>
+        <td>
+          <div class="confidence-bar">
+            <span style="font-weight:700;color:${confColor};min-width:35px">${s.confidence}%</span>
+            <div class="conf-track">
+              <div class="conf-fill" style="width:${s.confidence}%;background:${confColor}"></div>
+            </div>
+          </div>
+        </td>
+        <td style="color:var(--muted);font-size:11px">${s.model}</td>
+      </tr>
+    `;
+  }).join('');
+  document.getElementById('pred-section').style.display = 'block';
+}
+
+function renderIndicators(series) {
+  const closes = series.map(d => d.close);
+  const highs = series.map(d => d.high);
+  const lows = series.map(d => d.low);
+  const n = closes.length;
+  const last = closes[n-1];
+  const rsi = calcRSI(closes);
+  const macdData = calcMACD(closes);
+  const bb = calcBollinger(closes);
+  const atr = calcATR(highs, lows, closes);
+  const stoch = calcStochastic(highs, lows, closes);
+  const mom = calcMomentum(closes);
+  const ema20 = calcEMA(closes, 20);
+  const ema50 = calcEMA(closes, 50);
+  const sma200 = calcSMA(closes, 200);
+  const fmt = (v, dec=2) => v != null ? v.toFixed(dec) : '--';
+  const col = (v, lo, hi) => v != null ? (v > hi ? 'var(--red)' : v < lo ? 'var(--green)' : 'var(--warn)') : 'var(--muted)';
+  const lastRSI = rsi[n-1];
+  const lastMACD = macdData.macd[n-1];
+  const lastSignal = macdData.signal[n-1];
+  const lastHist = macdData.histogram[n-1];
+  const lastBBU = bb.upper[n-1];
+  const lastBBL = bb.lower[n-1];
+  const bbPct = (last - (lastBBL||0)) / ((lastBBU||1) - (lastBBL||0)) * 100;
+
+  document.getElementById('ind-trend').innerHTML = [
+    { name: 'EMA 20', val: fmt(ema20[n-1]), color: last > ema20[n-1] ? 'var(--green)' : 'var(--red)' },
+    { name: 'EMA 50', val: fmt(ema50[n-1]), color: last > ema50[n-1] ? 'var(--green)' : 'var(--red)' },
+    { name: 'SMA 200', val: n > 200 ? fmt(sma200[n-1]) : 'N/A', color: n > 200 && last > sma200[n-1] ? 'var(--green)' : 'var(--red)' },
+    { name: 'BB %B', val: fmt(bbPct, 1) + '%', color: col(bbPct, 20, 80) },
+    { name: 'BB Width', val: fmt(bb.bandwidth[n-1]*100, 2) + '%', color: 'var(--text)' },
+  ].map(r => `<div class="ind-row"><span class="name">${r.name}</span><span class="val" style="color:${r.color}">${r.val}</span></div>`).join('');
+
+  document.getElementById('ind-momentum').innerHTML = [
+    { name: 'RSI 14', val: fmt(lastRSI, 1), color: col(lastRSI, 30, 70) },
+    { name: 'MACD', val: fmt(lastMACD, 3), color: lastMACD > 0 ? 'var(--green)' : 'var(--red)' },
+    { name: 'Signal', val: fmt(lastSignal, 3), color: 'var(--text)' },
+    { name: 'Hist.', val: fmt(lastHist, 3), color: lastHist > 0 ? 'var(--green)' : 'var(--red)' },
+    { name: 'Stoch %K', val: fmt(stoch[n-1], 1), color: col(stoch[n-1], 20, 80) },
+  ].map(r => `<div class="ind-row"><span class="name">${r.name}</span><span class="val" style="color:${r.color}">${r.val}</span></div>`).join('');
+
+  document.getElementById('ind-vol').innerHTML = [
+    { name: 'ATR 14', val: fmt(atr[n-1]), color: 'var(--text)' },
+    { name: 'BB Upper', val: fmt(lastBBU), color: 'var(--text)' },
+    { name: 'BB Lower', val: fmt(lastBBL), color: 'var(--text)' },
+    { name: 'Momentum', val: fmt(mom[n-1], 2) + '%', color: (mom[n-1]||0) > 0 ? 'var(--green)' : 'var(--red)' },
+    { name: 'Amplitude', val: fmt((last - lows.slice(-14).reduce((a,b)=>Math.min(a,b),Infinity)), 2), color: 'var(--text)' },
+  ].map(r => `<div class="ind-row"><span class="name">${r.name}</span><span class="val" style="color:${r.color}">${r.val}</span></div>`).join('');
+
+  let bullSignals = 0, bearSignals = 0;
+  if (lastRSI > 50) bullSignals++; else bearSignals++;
+  if (lastMACD > lastSignal) bullSignals++; else bearSignals++;
+  if (last > ema20[n-1]) bullSignals++; else bearSignals++;
+  if (last > ema50[n-1]) bullSignals++; else bearSignals++;
+  if (lastHist > 0) bullSignals++; else bearSignals++;
+  if ((stoch[n-1]||50) > 50) bullSignals++; else bearSignals++;
+  if ((mom[n-1]||0) > 0) bullSignals++; else bearSignals++;
+
+  const totalSig = bullSignals + bearSignals;
+  const bullPct = Math.round(bullSignals / totalSig * 100);
+  const overallBias = bullPct > 60 ? 'HAUSSIER' : bullPct < 40 ? 'BAISSIER' : 'NEUTRE';
+  const biasColor = bullPct > 60 ? 'var(--green)' : bullPct < 40 ? 'var(--red)' : 'var(--warn)';
+
+  document.getElementById('ind-signals').innerHTML = `
+    <div class="ind-row"><span class="name">Biais global</span><span class="val" style="color:${biasColor}">${overallBias}</span></div>
+    <div class="ind-row"><span class="name">Signaux ▲</span><span class="val" style="color:var(--green)">${bullSignals}/7</span></div>
+    <div class="ind-row"><span class="name">Signaux ▼</span><span class="val" style="color:var(--red)">${bearSignals}/7</span></div>
+    <div class="ind-row"><span class="name">Force tendance</span><span class="val" style="color:${biasColor}">${bullPct}%</span></div>
+    <div class="ind-row"><span class="name">MACD Croisement</span><span class="val" style="color:${lastMACD > lastSignal ? 'var(--green)' : 'var(--red)'}">${lastMACD > lastSignal ? 'Achat' : 'Vente'}</span></div>
+  `;
+
+  document.getElementById('indicators-grid').style.display = 'grid';
+}
+
+// ============================================================
+// MAIN ANALYSIS
+// ============================================================
+
+async function runAnalysis() {
+  const ticker = document.getElementById('etf-select').value;
+  const horizon = parseInt(document.getElementById('horizon-select').value);
+  const histDays = parseInt(document.getElementById('history-select').value);
+
+  debugLogs = [];
+  clearDebugPanel();
+  addDebugLog('warn', `Démarrage analyse: ${ticker}, horizon J+${horizon}, ${histDays} jours`);
+
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('export-btn').disabled = true;
+  showLoader('Récupération des données Yahoo Finance...');
+  setStatus('loading', `Chargement de ${ticker}...`);
+
+  try {
+    const series = await fetchYahooData(ticker, histDays + 10);
+
+    setStatus('loading', 'Calcul des indicateurs techniques...');
+    showLoader('Calcul MACD · RSI · Bollinger · ATR...');
+    await new Promise(r => setTimeout(r, 200));
+
+    setStatus('loading', 'Inférence des modèles (LSTM · XGBoost · Poly)...');
+    showLoader('Ensemble model inference...');
+    await new Promise(r => setTimeout(r, 300));
+
+    const predictions = ensemblePredict(series, horizon);
+
+    hideLoader();
+
+    renderChart(series, predictions, horizon);
+    renderMetrics(series, predictions, horizon);
+    renderPredictions(series, predictions, horizon);
+    renderIndicators(series);
+
+    lastResult = { series, predictions, horizon, ticker };
+    document.getElementById('export-btn').disabled = false;
+
+    const ensTarget = predictions.ensemble[horizon-1];
+    const last = series[series.length-1].close;
+    const move = ((ensTarget - last) / last * 100).toFixed(2);
+    const dir = ensTarget > last ? '▲' : '▼';
+    setStatus('ok', `${ticker} — Cours: ${last.toFixed(2)} | Cible J+${horizon}: ${ensTarget.toFixed(2)} (${dir} ${Math.abs(move)}%) | Accord: ${Math.round(predictions.agreementScores[horizon-1]*100)}%`);
+
+  } catch(err) {
+    hideLoader();
+    setStatus('error', `Erreur: ${err.message}`);
+    document.getElementById('empty-state').style.display = 'block';
+    document.getElementById('empty-state').innerHTML = `<div class="icon">⚠️</div><div style="color:var(--red)">${err.message}</div><div style="margin-top:8px;font-size:10px;color:var(--muted)">Vérifiez la console ou le panneau de débogage ci-dessous.</div>`;
+
+    // Show debug panel automatically
+    if (!debugOpen) toggleDebugBody();
+    showDebugPanel(`Erreur de chargement — ${ticker}`);
+  }
+
+  document.getElementById('run-btn').disabled = false;
+}
+
+async function runBacktest() {
+  const ticker = document.getElementById('etf-select-bt').value;
+  const btDate = document.getElementById('bt-date').value;
+  const horizon = parseInt(document.getElementById('bt-horizon').value);
+  const window = parseInt(document.getElementById('bt-window').value);
+
+  if (!btDate) { alert('Choisissez une date'); return; }
+
+  debugLogs = [];
+  clearDebugPanel();
+  addDebugLog('warn', `Démarrage backtest: ${ticker} @ ${btDate}, horizon J+${horizon}, fenêtre ${window}j`);
+
+  document.getElementById('bt-run-btn').disabled = true;
+  showLoader('Chargement des données historiques...');
+  setStatus('loading', `Backtest ${ticker} @ ${btDate}...`);
+
+  try {
+    const refDate = new Date(btDate);
+    const fetchStart = new Date(refDate);
+    fetchStart.setDate(fetchStart.getDate() - window - 50);
+    const fetchEnd = new Date(refDate);
+    fetchEnd.setDate(fetchEnd.getDate() + horizon + 10);
+    const totalDays = Math.ceil((fetchEnd - fetchStart) / (1000 * 3600 * 24)) + 30;
+    const series = await fetchYahooData(ticker, totalDays + window + 50);
+
+    const dateTs = refDate.getTime();
+    let refIdx = series.findIndex(d => d.date.getTime() >= dateTs);
+    if (refIdx < 0) refIdx = series.length - horizon - 1;
+    if (refIdx < window) { throw new Error(`Pas assez de données avant ${btDate}`); }
+
+    const histSeries = series.slice(refIdx - window, refIdx + 1);
+
+    showLoader('Calcul des prédictions à la date historique...');
+    await new Promise(r => setTimeout(r, 300));
+
+    const predictions = ensemblePredict(histSeries, horizon);
+    const futureSeries = series.slice(refIdx + 1, refIdx + 1 + horizon);
+
+    hideLoader();
+
+    renderChart(histSeries, predictions, horizon, futureSeries);
+    renderMetrics(histSeries, predictions, horizon);
+    renderPredictions(histSeries, predictions, horizon);
+    renderIndicators(histSeries);
+
+    const predTarget = predictions.ensemble[horizon - 1];
+    const actualLast = futureSeries.length > 0 ? futureSeries[Math.min(horizon, futureSeries.length) - 1].close : null;
+    const refClose = histSeries[histSeries.length-1].close;
+
+    const btResult = document.getElementById('backtest-result');
+    const btContent = document.getElementById('bt-result-content');
+
+    if (actualLast) {
+      const predMove = ((predTarget - refClose) / refClose * 100).toFixed(2);
+      const actualMove = ((actualLast - refClose) / refClose * 100).toFixed(2);
+      const predError = Math.abs(predTarget - actualLast);
+      const predErrorPct = (predError / actualLast * 100).toFixed(2);
+      const dirCorrect = Math.sign(predTarget - refClose) === Math.sign(actualLast - refClose);
+      const inCone = actualLast >= predictions.ci[horizon-1].p10 && actualLast <= predictions.ci[horizon-1].p90;
+      btContent.innerHTML = `
+        <div class="bt-row"><span>Date d'analyse</span><span>${btDate}</span></div>
+        <div class="bt-row"><span>Cours de référence</span><span>${refClose.toFixed(2)}</span></div>
+        <div class="bt-row"><span>Prédiction J+${horizon}</span><span>${predTarget.toFixed(2)} (${predMove > 0 ? '+' : ''}${predMove}%)</span></div>
+        <div class="bt-row"><span>Cours réel J+${horizon}</span><span style="color:var(--warn)">${actualLast.toFixed(2)} (${actualMove > 0 ? '+' : ''}${actualMove}%)</span></div>
+        <div class="bt-row"><span>Erreur absolue</span><span style="color:${predErrorPct < 2 ? 'var(--green)' : predErrorPct < 5 ? 'var(--warn)' : 'var(--red)'}">${predError.toFixed(2)} (${predErrorPct}%)</span></div>
+        <div class="bt-row"><span>Direction correcte</span><span style="color:${dirCorrect ? 'var(--green)' : 'var(--red)'}">${dirCorrect ? '✓ OUI' : '✗ NON'}</span></div>
+        <div class="bt-row"><span>Dans le cône 90%</span><span style="color:${inCone ? 'var(--green)' : 'var(--red)'}">${inCone ? '✓ OUI' : '✗ NON'}</span></div>
+      `;
+      setStatus('ok', `Backtest terminé — Erreur: ${predErrorPct}% | Direction: ${dirCorrect ? '✓ correcte' : '✗ incorrecte'} | Dans le cône: ${inCone ? '✓' : '✗'}`);
+    } else {
+      btContent.innerHTML = `<div class="bt-row"><span>Données futures insuffisantes pour cette date</span></div>`;
+      setStatus('ok', 'Backtest affiché (pas assez de données futures)');
+    }
+
+    btResult.classList.add('visible');
+    lastResult = { series: histSeries, predictions, horizon, ticker, backtestFuture: futureSeries };
+
+  } catch(err) {
+    hideLoader();
+    setStatus('error', `Erreur: ${err.message}`);
+    if (!debugOpen) toggleDebugBody();
+    showDebugPanel(`Erreur backtest — ${ticker}`);
+  }
+
+  document.getElementById('bt-run-btn').disabled = false;
+}
+
+function exportData() {
+  if (!lastResult) return;
+  const { series, predictions, horizon, ticker } = lastResult;
+  const closes = series.map(d => d.close);
+  const last = closes[closes.length - 1];
+  const rows = ['Date,Close,Ensemble,LSTM,XGBoost,Poly,EMA,CI_P10,CI_P90'];
+  series.forEach(d => rows.push(`${d.date.toISOString().split('T')[0]},${d.close},,,,,,`));
+  predictions.ensemble.forEach((e, i) => {
+    const d = new Date(series[series.length-1].date);
+    d.setDate(d.getDate() + i + 1);
+    rows.push(`${d.toISOString().split('T')[0]},${last},${e.toFixed(4)},${predictions.lstmPreds[i].toFixed(4)},${predictions.xgbPreds[i].toFixed(4)},${predictions.polyPreds[i].toFixed(4)},${predictions.emaPreds[i].toFixed(4)},${predictions.ci[i].p10.toFixed(4)},${predictions.ci[i].p90.toFixed(4)}`);
+  });
+  const blob = new Blob([rows.join('\n')], {type: 'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${ticker}_predictions_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+}
+
+window.addEventListener('resize', () => {
+  if (lastResult) {
+    const { series, predictions, horizon, backtestFuture } = lastResult;
+    renderChart(series, predictions, horizon, backtestFuture || null);
+  }
+});
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('[PWA] Service Worker enregistré:', reg.scope))
+      .catch(err => console.log('[PWA] SW erreur:', err));
+  });
+}
+</script>
+</body>
+</html>
